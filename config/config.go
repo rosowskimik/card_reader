@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const CONFIG_PATH = "/etc/xdg/hal/config.yml"
+const CONFIG_PATH = "/etc/xdg/card_reader/config.yml"
 
 var AppConfig struct {
 	Network struct {
