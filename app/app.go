@@ -53,6 +53,7 @@ func Init() (*App, error) {
 		leds:   leds,
 		sensor: sensor,
 		reader: reader,
+		locked: config.AppConfig.InitLocked,
 	}, nil
 }
 
