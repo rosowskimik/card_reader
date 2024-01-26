@@ -44,7 +44,7 @@ func (a *MockApi) CheckCard(uid []byte) bool {
 		CardID: hex.EncodeToString(uid),
 		commonFields: commonFields{
 			Mac:       a.mac,
-			Timestamp: time.Now(),
+			Timestamp: time.Now().Unix(),
 		},
 	})
 	if err != nil {
@@ -62,7 +62,7 @@ func (a *MockApi) PostMove() {
 	data, err := json.Marshal(MoveEvent{
 		commonFields: commonFields{
 			Mac:       a.mac,
-			Timestamp: time.Now(),
+			Timestamp: time.Now().Unix(),
 		},
 	})
 	if err != nil {

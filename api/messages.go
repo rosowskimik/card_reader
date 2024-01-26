@@ -1,12 +1,8 @@
 package api
 
-import (
-	"time"
-)
-
 type commonFields struct {
-	Mac       string    `json:"mac"`
-	Timestamp time.Time `json:"timestamp"`
+	Mac       string `json:"mac"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 type CardEvent struct {
