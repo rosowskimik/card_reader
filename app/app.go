@@ -10,11 +10,12 @@ import (
 )
 
 type App struct {
+	api    *api.MockApi
 	leds   *periph.StatusLeds
 	sensor *periph.MovementSensor
 	reader *periph.RFIDController
 	timer  *time.Timer
-	api    *api.MockApi
+	locked bool
 }
 
 func Init() (*App, error) {
@@ -47,13 +48,11 @@ func Init() (*App, error) {
 		return nil, err
 	}
 
-	var timer *time.Timer
 	return &App{
-		leds,
-		sensor,
-		reader,
-		timer,
-		api,
+		api:    api,
+		leds:   leds,
+		sensor: sensor,
+		reader: reader,
 	}, nil
 }
 
@@ -102,7 +101,7 @@ func (a *App) cardLoop(debounceTime time.Duration, e chan<- error) {
 	}
 
 	slog.Info("Starting status leds")
-	if err := a.leds.NormalMode(); err != nil {
+	if err := a.leds.UnlockedMode(); err != nil {
 		ledErr(e, err)
 		return
 	}
@@ -117,21 +116,31 @@ func (a *App) cardLoop(debounceTime time.Duration, e chan<- error) {
 		}
 
 		if a.api.CheckCard(uid) {
-			if err := a.leds.CorrectMode(); err != nil {
+			a.locked = !a.locked
+			if err := a.displayLock(); err != nil {
 				ledErr(e, err)
 				return
 			}
 		} else {
-			if err := a.leds.IncorrectMode(); err != nil {
+			if err := a.displayError(debounceTime); err != nil {
 				ledErr(e, err)
 				return
 			}
 		}
-
-		<-time.After(debounceTime)
-		if err := a.leds.NormalMode(); err != nil {
-			ledErr(e, err)
-			return
-		}
 	}
+}
+
+func (a *App) displayLock() error {
+	if a.locked {
+		return a.leds.LockedMode()
+	}
+	return a.leds.UnlockedMode()
+}
+
+func (a *App) displayError(dur time.Duration) error {
+	if err := a.leds.ErrorMode(); err != nil {
+		return err
+	}
+	<-time.After(dur)
+	return a.displayLock()
 }

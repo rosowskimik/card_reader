@@ -39,7 +39,7 @@ func InitLeds(redName, greenName string) (*StatusLeds, error) {
 	}, nil
 }
 
-func (s *StatusLeds) NormalMode() error {
+func (s *StatusLeds) LockedMode() error {
 	return s.setBrightness(1, 0)
 }
 
@@ -47,11 +47,11 @@ func (s *StatusLeds) CheckMode() error {
 	return s.setBrightness(0, 0)
 }
 
-func (s *StatusLeds) CorrectMode() error {
+func (s *StatusLeds) UnlockedMode() error {
 	return s.setBrightness(0, 1)
 }
 
-func (s *StatusLeds) IncorrectMode() error {
+func (s *StatusLeds) ErrorMode() error {
 	if err := s.greenLed.SetBrightness(0); err != nil {
 		return err
 	}
