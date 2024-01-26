@@ -1,7 +1,10 @@
 package main
 
 import (
+	"io"
+	"log"
 	"log/slog"
+	"log/syslog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,7 +18,26 @@ func fatal(msg string, err error) {
 	os.Exit(1)
 }
 
+func setupLog() error {
+	writers := make([]io.Writer, 0, 2)
+	writers = append(writers, os.Stdout)
+
+	syslogger, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER, "")
+	if err != nil {
+		slog.Error("Failed to connect to system logger")
+	} else {
+		writers = append(writers, syslogger)
+	}
+
+	writer := io.MultiWriter(writers...)
+	log.SetFlags(0)
+	log.SetOutput(writer)
+	return nil
+}
+
 func main() {
+	setupLog()
+
 	if err := config.InitConfig(); err != nil {
 		fatal("Failed to parse config", err)
 	}
