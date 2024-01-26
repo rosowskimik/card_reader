@@ -84,6 +84,7 @@ func (a *App) moveLoop(debounceTime time.Duration, e chan<- error) {
 		if ev == periph.EdgeRising {
 			if timer == nil || !timer.Stop() {
 				a.api.PostMove()
+				slog.Info("Movement detected")
 				timer = nil
 			}
 		} else {
@@ -100,8 +101,8 @@ func (a *App) cardLoop(debounceTime time.Duration, e chan<- error) {
 		c <- e
 	}
 
-	slog.Info("Starting status leds")
-	if err := a.leds.UnlockedMode(); err != nil {
+	slog.Info("Starting lock status leds")
+	if err := a.displayLock(); err != nil {
 		ledErr(e, err)
 		return
 	}
@@ -116,12 +117,17 @@ func (a *App) cardLoop(debounceTime time.Duration, e chan<- error) {
 		}
 
 		if a.api.CheckCard(uid) {
-			a.locked = !a.locked
+			if a.locked = !a.locked; a.locked {
+				slog.Info("Door locked")
+			} else {
+				slog.Info("Door unlocked")
+			}
 			if err := a.displayLock(); err != nil {
 				ledErr(e, err)
 				return
 			}
 		} else {
+			slog.Warn("Lock attempt with unaithorized card")
 			if err := a.displayError(debounceTime); err != nil {
 				ledErr(e, err)
 				return
