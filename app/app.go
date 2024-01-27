@@ -128,7 +128,7 @@ func (a *App) cardLoop(debounceTime time.Duration, e chan<- error) {
 				return
 			}
 		} else {
-			slog.Warn("Lock attempt with unaithorized card")
+			slog.Warn("Lock attempt with unauthorized card")
 			if err := a.displayError(debounceTime); err != nil {
 				ledErr(e, err)
 				return
