@@ -25,12 +25,12 @@ var AppConfig struct {
 			GreenLedName string `yaml:"green_name" envconfig:"HAL_GREEN_LED_NAME"`
 		}
 		Reader struct {
-			AntennaStrength int8          `yaml:"strength" envconfig:"HAL_ANTENNA_STRENGTH" default:"5"`
-			ReaderTimeout   time.Duration `yaml:"timeout" envconfig:"HAL_READER_TIMEOUT" default:"7s"`
+			AntennaStrength int8          `yaml:"strength" envconfig:"HAL_ANTENNA_STRENGTH"`
+			ReaderTimeout   time.Duration `yaml:"timeout" envconfig:"HAL_READER_TIMEOUT"`
 		}
 
 		Movement struct {
-			MoveTimeout time.Duration `yaml:"timeout" envconfig:"HAL_MOVEMENT_TIMEOUT" default:"20s"`
+			MoveTimeout time.Duration `yaml:"timeout" envconfig:"HAL_MOVEMENT_TIMEOUT"`
 		}
 	}
 }
