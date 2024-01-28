@@ -10,7 +10,7 @@ import (
 )
 
 type App struct {
-	api    *api.MockApi
+	api    *api.Api
 	leds   *periph.StatusLeds
 	sensor *periph.MovementSensor
 	reader *periph.RFIDController
@@ -19,13 +19,13 @@ type App struct {
 }
 
 func Init() (*App, error) {
-	api, err := api.InitAPI(config.AppConfig.Network.Interface)
+	api, err := api.InitAPI(config.Config)
 	if err != nil {
 		return nil, err
 	}
 
 	slog.Debug("Setting up status leds")
-	leds, err := periph.InitLeds(config.AppConfig.Periph.Leds.RedLedName, config.AppConfig.Periph.Leds.GreenLedName)
+	leds, err := periph.InitLeds(config.Config.Periph.Leds.RedLedName, config.Config.Periph.Leds.GreenLedName)
 	if err != nil {
 		slog.Error("Failed to initialize leds")
 		return nil, err
@@ -40,7 +40,7 @@ func Init() (*App, error) {
 	}
 
 	slog.Debug("Setting up card reader")
-	reader, err := periph.InitRFID(int(config.AppConfig.Periph.Reader.AntennaStrength))
+	reader, err := periph.InitRFID(int(config.Config.Periph.Reader.AntennaStrength))
 	if err != nil {
 		slog.Error("Failed to initialize card reader")
 		sensor.Close()
@@ -53,15 +53,15 @@ func Init() (*App, error) {
 		leds:   leds,
 		sensor: sensor,
 		reader: reader,
-		locked: config.AppConfig.InitLocked,
+		locked: config.Config.InitLocked,
 	}, nil
 }
 
 func (a *App) Run() <-chan error {
 	c := make(chan error)
 
-	go a.moveLoop(config.AppConfig.Periph.Movement.MoveTimeout, c)
-	go a.cardLoop(config.AppConfig.Periph.Reader.ReaderTimeout, c)
+	go a.moveLoop(config.Config.Periph.Movement.MoveTimeout, c)
+	go a.cardLoop(config.Config.Periph.Reader.ReaderTimeout, c)
 
 	return c
 }

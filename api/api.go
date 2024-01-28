@@ -1,23 +1,28 @@
 package api
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
+
+	"github.com/rosowskimik/card_reader/config"
 )
 
-type MockApi struct {
+type Api struct {
 	client *http.Client
+	id     string
 	mac    string
+	base   *url.URL
 }
 
-func InitAPI(iface string) (*MockApi, error) {
+func InitAPI(cfg config.AppConfig) (*Api, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -25,49 +30,95 @@ func InitAPI(iface string) (*MockApi, error) {
 
 	var mac net.HardwareAddr
 	for _, ifa := range ifaces {
-		if ifa.Name == iface {
+		if ifa.Name == cfg.Network.Interface {
 			mac = ifa.HardwareAddr
 		}
 	}
 	if len(mac) == 0 {
-		return nil, errors.New(fmt.Sprintf("Could not find MAC address for interface '%s'", iface))
+		return nil, errors.New(fmt.Sprintf("Could not find MAC address for interface '%s'", cfg.Network.Interface))
 	}
 
-	return &MockApi{
-		client: http.DefaultClient,
+	base, err := url.Parse(cfg.Network.Hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Api{
+		client: &http.Client{},
+		id:     cfg.Network.Id,
 		mac:    mac.String(),
+		base:   base,
 	}, nil
 }
 
-func (a *MockApi) CheckCard(uid []byte) bool {
+func (a *Api) CheckCard(uid []byte) bool {
 	data, err := json.Marshal(CardEvent{
 		CardID: hex.EncodeToString(uid),
 		commonFields: commonFields{
-			Mac:       a.mac,
-			Timestamp: time.Now().Unix(),
+			Id: a.id,
 		},
 	})
+
 	if err != nil {
-		slog.Error("Failed to check card uid")
+		slog.Error("Json parsing failed")
 		return false
 	}
 
-	slog.Info("Check card", "data", data)
+	slog.Debug("Check card", "data", string(data))
 
-	time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
-	return rand.Intn(2) < 1
+	resp, err := a.request(http.MethodPost, "/api/system/authorize", data)
+	if err != nil {
+		slog.Error("Failed to send card check request", "error", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case 202:
+		return true
+	case 401:
+		return false
+	default:
+		slog.Error("Unknown response status code", "code", resp.Status)
+		return false
+	}
 }
 
-func (a *MockApi) PostMove() {
+func (a *Api) PostMove() {
 	data, err := json.Marshal(MoveEvent{
 		commonFields: commonFields{
-			Mac:       a.mac,
-			Timestamp: time.Now().Unix(),
+			Id: a.id,
 		},
+		Timestamp: time.Now().Unix(),
 	})
+
 	if err != nil {
-		slog.Error("Failed to post movement event")
+		slog.Error("Json parsing failed")
+		return
 	}
-	slog.Info("Move post", "data", data)
-	time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+
+	slog.Debug("Move post", "data", string(data))
+
+	resp, err := a.request(http.MethodPost, "/api/event", data)
+	if err != nil {
+		slog.Error("Failed to send move detect event", "error", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 201 {
+		slog.Error("Unknown response status code", "code", resp.Status)
+	}
+}
+
+func (a *Api) request(method, url string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequest(method, a.base.JoinPath(url).String(), bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "*/*")
+
+	return a.client.Do(req)
 }

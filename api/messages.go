@@ -1,15 +1,15 @@
 package api
 
 type commonFields struct {
-	Mac       string `json:"mac"`
-	Timestamp int64  `json:"timestamp"`
+	Id string `json:"systemId"`
 }
 
 type CardEvent struct {
-	CardID string `json:"card_id"`
 	commonFields
+	CardID string `json:"cardValue"`
 }
 
 type MoveEvent struct {
 	commonFields
+	Timestamp int64 `json:"timestamp"`
 }

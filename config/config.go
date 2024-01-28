@@ -11,12 +11,13 @@ import (
 
 const CONFIG_PATH = "/etc/xdg/card_reader/config.yml"
 
-var AppConfig struct {
+type AppConfig struct {
 	InitLocked bool `envconfig:"HAL_INIT_LOCKED"`
 
 	Network struct {
 		Interface string `envconfig:"HAL_NET_INTERFACE"`
 		Hostname  string `envconfig:"HAL_API_HOST"`
+		Id        string `envconfig:"HAL_SYSTEM_ID"`
 	}
 
 	Periph struct {
@@ -35,6 +36,8 @@ var AppConfig struct {
 	}
 }
 
+var Config AppConfig
+
 func InitConfig() error {
 	fh, err := os.Open(CONFIG_PATH)
 	if err != nil {
@@ -44,16 +47,16 @@ func InitConfig() error {
 	defer fh.Close()
 
 	decoder := yaml.NewDecoder(fh)
-	if err := decoder.Decode(&AppConfig); err != nil {
+	if err := decoder.Decode(&Config); err != nil {
 		slog.Error("Failed to parse config file")
 		return err
 	}
 
-	if envconfig.Process("", &AppConfig) != nil {
+	if envconfig.Process("", &Config) != nil {
 		slog.Warn("Failed to parse environment")
 	}
 
-	slog.Info("App starting", slog.Any("config", AppConfig))
+	slog.Info("App starting", slog.Any("config", Config))
 
 	return nil
 }
